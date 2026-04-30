@@ -5,47 +5,81 @@ def read_input_file(file_name):
         transactions = [set(line.strip().split('\t')) for line in f]
     return transactions
 
-def count_itemset_in_transaction(transactions,candidate_itemset):
+def count_item_set_in_transaction(transactions,candidate_itemset):
     count = 0
     for transaction in transactions:
         if candidate_itemset.issubset(transaction):
             count += 1
     return count
+
 #Finding frequent itemsets with apriori algorithm
 def get_frequent_itemsets_with_apriori(transactions, min_support):
-#-----------Initialize frequent itemsets with size of 1 itemsets----------------#
-    #Making combinations of items
     from itertools import combinations
-    #Easy item counting with defaultdict
     from collections import defaultdict
-    #Making size 1 frequent item and filtering
-    size_1_item_count = defaultdict(int)
+#---1. Making 1_size_frequent_item_sets_dictionary---
+    item_count = defaultdict(int)
     for transaction in transactions:
         for item in transaction:
-            size_1_item_count[item] += 1
+            item_count[item] += 1
+    size_1_frequent_item_sets_dict = {frozenset({item}):count for item,count in item_count.items() if count>=min_support}
+#---2. Making all_frequent_item_sets_dictionary_list
     #Index means size of set
-    frequent_itemsets = [{}]
-    #Making size 1 frequent itemset and filtering
-    frequent_itemsets.append({frozenset({item}):count for item,count in size_1_item_count.items() if count>=min_support})
-    #Making size 2 frequent itemset
-    size_2_itemsets = {a|b for a,b in combinations([frequent_itemsets[1].keys],2)}
-    candidate_itemsets = size_2_itemsets[:]
-    k = 2
-    #LOOP
-    while not candidate_itemsets.empty():
-        k_size_frequent_itemsets = {}
-        #1. Counting
-        for itemset in candidate_itemsets:
-            count = count_itemset_in_transaction(transactions=transactions,candidate_itemset=itemset)
-        #2. Filtering
-            if count >= min_support:
-                k_size_frequent_itemsets.add({frozenset(itemset):count})
-        #3. Saving
-        frequent_itemsets.append(k_size_frequent_itemsets)
-        #4. joining
-        candidate_itemsets = {a|b for a,b in combinations(frequent_itemsets[k].keys,k+1)}
-        k += 1
-        #5. Pruning
-        for candidate_itemset in candidate_itemsets:
-            for itemset in k_size_frequent_itemsets.key:
-                
+    all_frequent_item_sets_dict_list = [{}]
+    all_frequent_item_sets_dict_list.append(size_1_frequent_item_sets_dict)
+#---3. Looping to search all frequent item sets
+    size_of_set = 2
+    while True:
+#-------3.1 Joining
+        #Loading post loop sets
+        post_loop_item_sets_set = set(all_frequent_item_sets_dict_list[-1].keys())
+        #combination
+        combinations_set = {a|b for a,b in combinations(post_loop_item_sets_set,2)}
+        candidate_item_sets_set = {item_set for item_set in combinations_set if len(item_set)==size_of_set}
+#-------3.2 Pruning
+        passed_item_sets_set = set()
+        flag = True
+        for candidate_item_set in candidate_item_sets_set:
+            candidate_item_set_combination_set = combinations(candidate_item_set,size_of_set-1)
+            for candidate_item_set_combination in candidate_item_set_combination_set:
+                if frozenset(candidate_item_set_combination) not in post_loop_item_sets_set:
+                    flag = False
+                    break
+            if flag:
+                passed_item_sets_set.add(candidate_item_set)
+            else:
+                flag = True
+#-------3.3 Filtering
+        candidate_item_sets_dict = {}
+        for item_set in passed_item_sets_set:
+            count = count_item_set_in_transaction(transactions,item_set)
+            if count>=min_support:
+                candidate_item_sets_dict[item_set] = count
+#-------3.4 Saving or break
+        if len(candidate_item_sets_dict)==0:
+            break
+        all_frequent_item_sets_dict_list.append(candidate_item_sets_dict)
+        size_of_set += 1
+#---4. return
+    return all_frequent_item_sets_dict_list
+def get_association_rules(frequent_item_sets_dict_list):
+    pass
+    #TODO
+def writing_output_file(file_name,association_rules_set):
+    pass
+    #TODO
+
+if __name__ == "__main__":
+    import sys
+    # Parse command line arguments
+    min_support = int(sys.argv[1])
+    input_file_name = sys.argv[2]
+    output_file_name = sys.argv[3]
+    
+    #1. Reading input.txt
+    transactions = read_input_file(input_file_name)
+    #2. Searching frequent itemsets
+    frequent_item_sets_dict_list = get_frequent_itemsets_with_apriori(transactions,min_support)
+    #3. Searching association rules
+    association_rules_set = get_association_rules(frequent_item_sets_dict_list)
+    #4. Making output.txt
+    writing_output_file(output_file_name,association_rules_set)
