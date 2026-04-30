@@ -1,3 +1,9 @@
+class AssocianRuleStruct:
+    def __init__(self):
+        self.item_set
+        self.associative_item_set
+        self.support_per
+        self.confidence_per
 #Reading input.txt
 def read_input_file(file_name):
     with open(file_name, 'r') as f:
@@ -64,6 +70,7 @@ def get_frequent_itemsets_with_apriori(transactions, min_support):
 def get_association_rules(frequent_item_sets_dict_list):
     pass
     #TODO
+
 def writing_output_file(file_name,association_rules_set):
     pass
     #TODO
